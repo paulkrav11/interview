@@ -1,0 +1,30 @@
+WITH CoachResults AS (
+    SELECT 
+        r.DeclaredTime,
+        r.Distanse,
+        r.Style,
+        r.SwimmerId,
+        r.CompetitionId,
+        s.CoachId,
+        c.FirstName AS CoachFirstName,
+        c.LastName AS CoachLastName,
+        ROW_NUMBER() OVER (PARTITION BY r.CompetitionId, r.Style, r.Distanse ORDER BY r.DeclaredTime ASC) AS Result
+    FROM dbo.result r
+    JOIN dbo.Swimmer s ON r.SwimmerId = s.SwimmerId
+    JOIN dbo.Coach c ON s.CoachId = c.CoachId
+)
+SELECT 
+    cr.DeclaredTime,
+    cr.Distanse,
+    cr.Style,
+    cr.SwimmerId,
+    cr.CompetitionId,
+    cr.CoachId,
+    cr.CoachFirstName,
+    cr.CoachLastName,
+    cr.Result,
+    (cr.CoachFirstName + ' ' + cr.CoachLastName) AS Coach, 
+    DENSE_RANK() OVER (PARTITION BY cr.CompetitionId, cr.Style, cr.Distanse ORDER BY cr.Result ASC) AS CoachRank
+FROM CoachResults cr
+ORDER BY 
+    cr.CompetitionId, cr.Style, cr.Distanse, cr.Result;

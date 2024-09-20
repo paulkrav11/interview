@@ -1,0 +1,27 @@
+DECLARE @CompetitionName VARCHAR(255) = 'Summer Olympic Games'; 
+DECLARE @CompetitionYear INT = 2000; 
+
+SELECT 
+    s.FirstName,
+    s.LastName,
+    c.CompetitionName,
+    YEAR(c.StartDate) AS YearComp,
+    CASE WHEN c.CompetitionName = @CompetitionName THEN 1 ELSE 0 END AS WinnerComp,
+    CASE WHEN YEAR(c.StartDate) = @CompetitionYear THEN 1 ELSE 0 END AS WinnerYear
+FROM dbo.Swimmer s
+INNER JOIN dbo.result r ON s.SwimmerId = r.SwimmerId
+INNER JOIN dbo.Competition c ON r.CompetitionId = c.CompetitionId
+WHERE r.ResultId IN (
+    SELECT ResultId 
+    FROM (
+        SELECT ResultId, ROW_NUMBER() OVER (PARTITION BY CompetitionId ORDER BY DeclaredTime ASC) as Place
+        FROM dbo.result
+    ) AS RankedResults
+    WHERE Place IN (1, 2, 3) 
+)
+AND (@CompetitionName IS NULL OR c.CompetitionName = @CompetitionName)
+AND (@CompetitionYear IS NULL OR YEAR(c.StartDate) = @CompetitionYear)
+
+ORDER BY
+    c.CompetitionName,
+    YearComp;
